@@ -59,7 +59,7 @@ class ChessGame:
         # Debug logging
         print(f"DEBUG: make_move called - user_id: {user_id}, turn: {self.board.turn}")
         print(f"DEBUG: white_player_id: {self.white_player_id}, black_player_id: {self.black_player_id}")
-        print(f"DEBUG: Is in check: {self.board.is_check()}")
+        print(f"DEBUG: Pre-move check status: {self.board.is_check()}")
 
         # Validate it's the player's turn
         if not self.is_ai_game and user_id:
@@ -89,16 +89,28 @@ class ChessGame:
 
             # Validate the move is legal
             if move not in self.board.legal_moves:
-                if self.board.is_check():
-                    print(f"Move {move} invalid: You must get out of check!")
-                    print(f"Legal moves in check: {[str(m) for m in self.board.legal_moves]}")
-                else:
-                    print(f"Illegal move: {move} not in legal moves")
+                print(f"Illegal move: {move} not in legal moves")
+                print(f"Legal moves: {[str(m) for m in self.board.legal_moves]}")
                 return False
+
+            # If in check, verify the move resolves the check
+            if self.board.is_check():
+                # Temporarily make the move to check if it resolves check
+                self.board.push(move)
+                still_in_check = self.board.is_check()
+                self.board.pop()
+                if still_in_check:
+                    print(f"Move {move} does not resolve check")
+                    return False
 
             # Make the move
             san_notation = self.board.san(move)  # Get SAN before making the move
             self.board.push(move)
+            print(f"DEBUG: Post-move check status: {self.board.is_check()}")  # Check status after move
+
+            # Validate board state after move
+            if self.board.is_check() and self.board.turn != piece.color:
+                print(f"DEBUG: Opponent is in check after move {move}")
 
             # Store move in history
             move_data = {

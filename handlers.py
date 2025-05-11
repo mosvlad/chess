@@ -2,7 +2,7 @@
 import tornado.web
 import tornado.websocket
 import tornado.escape
-import tornado.httputil  # Add this import
+import tornado.httputil
 import json
 import hashlib
 import uuid
@@ -227,7 +227,8 @@ class GameWebSocketHandler(tornado.websocket.WebSocketHandler):
                 "board": game.get_board_state(),
                 "turn": game.get_current_turn(),
                 "moves": game.get_legal_moves(),
-                "game_status": game.get_game_status()
+                "game_status": game.get_game_status(),
+                "is_check": game.board.is_check()
             })
 
     def on_message(self, message):
@@ -257,9 +258,6 @@ class GameWebSocketHandler(tornado.websocket.WebSocketHandler):
         to_square = data.get("to")
         promotion = data.get("promotion")
 
-        # Check if the player is in check before attempting the move
-        is_in_check = game.board.is_check()
-
         # Validate and make move
         if game.make_move(self.user_id, from_square, to_square, promotion):
             # Broadcast move to all connected clients
@@ -270,7 +268,8 @@ class GameWebSocketHandler(tornado.websocket.WebSocketHandler):
                 "board": game.get_board_state(),
                 "turn": game.get_current_turn(),
                 "moves": game.get_legal_moves(),
-                "game_status": game.get_game_status()
+                "game_status": game.get_game_status(),
+                "is_check": game.board.is_check()
             })
 
             # Check for game end
@@ -287,7 +286,6 @@ class GameWebSocketHandler(tornado.websocket.WebSocketHandler):
             # If AI game, make AI move
             elif game.is_ai_game and game.get_current_turn() == "black":
                 # Add a small delay for AI move to make it feel more natural
-                import asyncio
                 async def make_ai_move():
                     await asyncio.sleep(1)  # 1 second delay
                     ai_move = ChessAI.get_best_move(game.board)
@@ -302,7 +300,8 @@ class GameWebSocketHandler(tornado.websocket.WebSocketHandler):
                                 "turn": game.get_current_turn(),
                                 "moves": game.get_legal_moves(),
                                 "game_status": game.get_game_status(),
-                                "ai_move": True
+                                "ai_move": True,
+                                "is_check": game.board.is_check()
                             })
 
                             # Check for game end after AI move
@@ -319,15 +318,15 @@ class GameWebSocketHandler(tornado.websocket.WebSocketHandler):
                 # Schedule the AI move
                 tornado.ioloop.IOLoop.current().add_callback(make_ai_move)
         else:
-            # Provide more specific error message based on game state
+            # Provide specific error message
             error_message = "Invalid move"
-            if is_in_check:
-                error_message = "You must get out of check! Only moves that resolve the check are allowed."
-
+            if game.board.is_check():
+                error_message = "Your king is in check! You must make a move to get out of check."
             self.write_message({
                 "type": "error",
                 "message": error_message,
-                "is_check": is_in_check
+                "is_check": game.board.is_check(),
+                "legal_moves": game.get_legal_moves()
             })
 
     def handle_chat(self, data):

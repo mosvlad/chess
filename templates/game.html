@@ -399,6 +399,7 @@ function initWebSocket() {
 
     webSocket.onmessage = function(event) {
         const data = JSON.parse(event.data);
+        console.log('Received WebSocket message:', data); // Debug log
         handleWebSocketMessage(data);
     };
 
@@ -424,7 +425,8 @@ function handleWebSocketMessage(data) {
                 board: data.board,
                 turn: data.turn,
                 moves: data.moves,
-                game_status: data.game_status
+                game_status: data.game_status,
+                is_check: data.is_check
             };
             updateBoard(data.board);
             updateGameStatus(data);
@@ -450,9 +452,17 @@ function handleWebSocketMessage(data) {
 
         case 'error':
             console.error('Error:', data.message);
-            // Show specific error message to user
-            if (data.is_check) {
-                alert('You are in check!\nYou must make a move that gets your king out of check.\n\nValid options:\n- Move your king to a safe square\n- Block the check with another piece\n- Capture the attacking piece');
+            if (data.is_check && data.legal_moves) {
+                gameState = {
+                    ...gameState,
+                    moves: data.legal_moves,
+                    game_status: 'active', // Reset to active to allow move selection
+                    is_check: true
+                };
+                updateBoard(gameState.board);
+                updateGameStatus(gameState);
+                highlightValidMoves(selectedSquare || findKingInCheck());
+                alert('You are in check! Please select a move from the highlighted options to get out of check.');
             } else {
                 alert(data.message || 'Invalid move. Please try again.');
             }
@@ -526,7 +536,7 @@ function updateBoard(boardState) {
     }
 
     // Highlight king if in check
-    if (gameState && gameState.game_status === 'check') {
+    if (gameState && gameState.is_check) {
         highlightCheck();
     }
 }
@@ -544,9 +554,10 @@ function getPieceUnicode(piece, color) {
 }
 
 function handleSquareClick(square) {
-    if (!gameState || gameState.game_status !== 'active') return;
+    console.log('handleSquareClick:', square, 'gameState:', gameState); // Debug log
+    if (!gameState) return;
 
-    // Check if it's our turn
+    // Allow moves when in check if it's our turn
     const isOurTurn = (gameState.turn === 'white' && isWhite) || (gameState.turn === 'black' && !isWhite);
     if (!isOurTurn) return;
 
@@ -567,8 +578,8 @@ function handleSquareClick(square) {
             // Deselect
             clearHighlights();
             selectedSquare = null;
-        } else {
-            // Attempt move
+        } else if (document.querySelector(`[data-square="${square}"]`).classList.contains('valid-move')) {
+            // Attempt move only if it's a valid move
             makeMove(selectedSquare, square);
             clearHighlights();
             selectedSquare = null;
@@ -705,6 +716,17 @@ function findPieceAtSquare(square) {
     return gameState.board[square] || null;
 }
 
+function findKingInCheck() {
+    if (!gameState || !gameState.board) return null;
+    const currentPlayer = gameState.turn;
+    for (const [square, piece] of Object.entries(gameState.board)) {
+        if (piece && piece.piece.toLowerCase() === 'k' && piece.color === currentPlayer) {
+            return square;
+        }
+    }
+    return null;
+}
+
 function highlightSquare(square) {
     const squareElement = document.querySelector(`[data-square="${square}"]`);
     if (squareElement) {
@@ -730,9 +752,8 @@ function highlightValidMoves(square) {
         }
     });
 
-    // If in check, show a visual indicator
-    if (gameState.game_status === 'check') {
-        // Add visual indicator that player is in check
+    // If in check, ensure only moves that resolve check are highlighted
+    if (gameState.is_check) {
         highlightCheck();
     }
 }
@@ -744,16 +765,14 @@ function clearHighlights() {
 }
 
 function highlightCheck() {
-    // First, clear any existing check highlights
+    // Clear any existing check highlights
     document.querySelectorAll('.chess-square').forEach(square => {
         square.classList.remove('check');
     });
 
     // Find the king that's in check
-    if (gameState && gameState.game_status === 'check') {
+    if (gameState && gameState.is_check) {
         const currentPlayer = gameState.turn;
-
-        // Find the king of the current player (who is in check)
         for (const [square, piece] of Object.entries(gameState.board)) {
             if (piece && piece.piece.toLowerCase() === 'k' && piece.color === currentPlayer) {
                 const kingSquare = document.querySelector(`[data-square="${square}"]`);
@@ -776,10 +795,9 @@ function updateGameStatus(data) {
         case 'check':
             gameMessage.textContent = '♔ Check!';
             gameMessage.style.color = '#e74c3c';
-            // Add helpful hint
             const isOurCheck = (data.turn === 'white' && isWhite) || (data.turn === 'black' && !isWhite);
             if (isOurCheck) {
-                gameMessage.textContent += ' You must get out of check!';
+                gameMessage.textContent += ' Select a highlighted move to get out of check.';
             }
             break;
         case 'active':
