@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Chess Online{% end %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        max-width: 500px;
+        margin: 4rem auto;
+    }
+    
+    .auth-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        padding: 2rem;
+    }
+    
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .auth-header h1 {
+        color: #2c3e50;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .auth-header p {
+        color: #7f8c8d;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        color: #495057;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-group input {
+        width: 100%;
+        padding: 0.875rem;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .form-group input:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+    
+    .form-group .help-text {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .submit-btn {
+        width: 100%;
+        padding: 0.875rem;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .submit-btn:hover {
+        background-color: #2980b9;
+    }
+    
+    .submit-btn:disabled {
+        background-color: #bdc3c7;
+        cursor: not-allowed;
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+    }
+    
+    .auth-footer a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+    
+    .error-message {
+        background-color: #fdf0ef;
+        color: #e74c3c;
+        padding: 0.875rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        border: 1px solid #fadcd9;
+    }
+    
+    .password-strength {
+        margin-top: 0.5rem;
+        height: 4px;
+        background-color: #eee;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+    
+    .password-strength .strength-bar {
+        height: 100%;
+        width: 0;
+        transition: all 0.3s;
+        border-radius: 2px;
+    }
+    
+    .password-strength.weak .strength-bar {
+        width: 33%;
+        background-color: #e74c3c;
+    }
+    
+    .password-strength.medium .strength-bar {
+        width: 66%;
+        background-color: #f39c12;
+    }
+    
+    .password-strength.strong .strength-bar {
+        width: 100%;
+        background-color: #27ae60;
+    }
+</style>
+{% end %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Create Account</h1>
+            <p>Join our chess community</p>
+        </div>
+        
+        {% if error %}
+        <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% end %}
+        
+        <form method="post" action="/register" id="registerForm">
+            {% module xsrf_form_html() %}
+            
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required 
+                       pattern="[a-zA-Z0-9_]{3,20}" title="Username must be 3-20 characters and contain only letters, numbers, and underscores">
+                <div class="help-text">3-20 characters, letters, numbers, and underscores only</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+                <div class="help-text">We'll never share your email with anyone else</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="8">
+                <div class="password-strength" id="passwordStrength">
+                    <div class="strength-bar"></div>
+                </div>
+                <div class="help-text">At least 8 characters</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+                <div class="help-text" id="passwordMatch"></div>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <i class="fas fa-user-plus"></i> Create Account
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            Already have an account? <a href="/login">Sign in</a>
+        </div>
+    </div>
+</div>
+{% end %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const passwordStrength = document.getElementById('passwordStrength');
+    const passwordMatch = document.getElementById('passwordMatch');
+    const submitBtn = document.getElementById('submitBtn');
+    const form = document.getElementById('registerForm');
+    
+    // Password strength checker
+    password.addEventListener('input', function() {
+        const value = this.value;
+        let strength = 0;
+        
+        // Check password strength
+        if (value.length >= 8) strength++;
+        if (value.match(/[a-z]/) && value.match(/[A-Z]/)) strength++;
+        if (value.match(/[0-9]/)) strength++;
+        if (value.match(/[^a-zA-Z0-9]/)) strength++;
+        
+        // Update strength indicator
+        passwordStrength.className = 'password-strength';
+        if (strength >= 3) {
+            passwordStrength.classList.add('strong');
+        } else if (strength >= 2) {
+            passwordStrength.classList.add('medium');
+        } else if (strength >= 1) {
+            passwordStrength.classList.add('weak');
+        }
+    });
+    
+    // Password match checker
+    function checkPasswordMatch() {
+        if (confirmPassword.value === '') {
+            passwordMatch.textContent = '';
+            passwordMatch.style.color = '';
+        } else if (password.value === confirmPassword.value) {
+            passwordMatch.textContent = 'Passwords match ✓';
+            passwordMatch.style.color = '#27ae60';
+            submitBtn.disabled = false;
+        } else {
+            passwordMatch.textContent = 'Passwords do not match';
+            passwordMatch.style.color = '#e74c3c';
+            submitBtn.disabled = true;
+        }
+    }
+    
+    confirmPassword.addEventListener('input', checkPasswordMatch);
+    password.addEventListener('input', checkPasswordMatch);
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            alert('Passwords do not match!');
+        }
+    });
+});
+</script>
+{% end %}

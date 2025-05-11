@@ -1,0 +1,24 @@
+# Web framework
+tornado==6.3.3
+
+# Chess engine and game logic
+python-chess==1.999
+
+# Environment variables management
+python-dotenv==1.0.0
+
+# Additional utilities
+python-dateutil==2.8.2
+
+# Optional: For better async support
+aiofiles==23.2.1
+
+# Platform-specific requirements
+# Note: Only install these on production servers (Unix/Linux)
+# gunicorn==21.2.0  # Unix only
+# uvloop==0.19.0    # Unix only - for better performance
+
+# Windows alternative for development
+# Install these manually on Windows if needed:
+# - waitress (WSGI server alternative to gunicorn)
+# Example: pip install waitress

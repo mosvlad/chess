@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard - Chess Online{% end %}
+
+{% block extra_css %}
+<style>
+    .leaderboard-header {
+        background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .leaderboard-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .leaderboard-header p {
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+    
+    .leaderboard-filters {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-group label {
+        color: #666;
+        font-weight: 500;
+    }
+    
+    .filter-select {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: white;
+    }
+    
+    .leaderboard-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .leaderboard-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .leaderboard-table th {
+        background: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+        padding: 1rem;
+        text-align: left;
+    }
+    
+    .leaderboard-table td {
+        padding: 1rem;
+        border-top: 1px solid #eee;
+    }
+    
+    .leaderboard-table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .rank-cell {
+        font-weight: bold;
+        text-align: center;
+        width: 60px;
+    }
+    
+    .rank-1 {
+        color: #f39c12;
+    }
+    
+    .rank-2 {
+        color: #95a5a6;
+    }
+    
+    .rank-3 {
+        color: #cd7f32;
+    }
+    
+    .player-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .player-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #3498db;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .player-name {
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .player-name:hover {
+        text-decoration: underline;
+    }
+    
+    .current-user-row {
+        background: #f0f9ff !important;
+        border: 2px solid #dbeafe;
+    }
+    
+    .elo-rating {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .win-rate {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .win-rate-bar {
+        width: 60px;
+        height: 8px;
+        background: #eee;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .win-rate-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #27ae60 0%, #f39c12 100%);
+        border-radius: 4px;
+    }
+    
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .stat-icon {
+        font-size: 2rem;
+        color: #3498db;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+    }
+    
+    .pagination button {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .pagination button:hover:not(:disabled) {
+        background: #f8f9fa;
+        border-color: #3498db;
+    }
+    
+    .pagination button.active {
+        background: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
+    
+    .pagination button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    @media (max-width: 768px) {
+        .leaderboard-table {
+            overflow-x: auto;
+        }
+        
+        .leaderboard-filters {
+            flex-direction: column;
+        }
+        
+        .stats-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% end %}
+
+{% block content %}
+<div class="leaderboard-header">
+    <h1>Leaderboard</h1>
+    <p>Top chess players on our platform</p>
+</div>
+
+<div class="stats-summary">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-value">{{ total_players }}</div>
+        <div class="stat-label">Total Players</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chess"></i>
+        </div>
+        <div class="stat-value">{{ total_games }}</div>
+        <div class="stat-label">Games Played Today</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-crown"></i>
+        </div>
+        <div class="stat-value">{{ highest_rating }}</div>
+        <div class="stat-label">Highest Rating</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-value">{{ average_rating }}</div>
+        <div class="stat-label">Average Rating</div>
+    </div>
+</div>
+
+<div class="leaderboard-filters">
+    <div class="filter-group">
+        <label>Time Period:</label>
+        <select class="filter-select" id="timePeriod">
+            <option value="all">All Time</option>
+            <option value="month">This Month</option>
+            <option value="week">This Week</option>
+        </select>
+    </div>
+    
+    <div class="filter-group">
+        <label>Show:</label>
+        <select class="filter-select" id="playerType">
+            <option value="all">All Players</option>
+            <option value="active">Active Players</option>
+            <option value="new">New Players</option>
+        </select>
+    </div>
+    
+    <div class="filter-group">
+        <label>Items per page:</label>
+        <select class="filter-select" id="itemsPerPage">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+        </select>
+    </div>
+</div>
+
+<div class="leaderboard-table">
+    <table>
+        <thead>
+            <tr>
+                <th class="rank-cell">Rank</th>
+                <th>Player</th>
+                <th>ELO Rating</th>
+                <th>Games Played</th>
+                <th>Win Rate</th>
+                <th>Wins</th>
+                <th>Draws</th>
+                <th>Last Active</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i, player in enumerate(players, 1) %}
+            <tr class="{% if player['id'] == current_user['id'] if current_user else False %}current-user-row{% end %}">
+                <td class="rank-cell rank-{{ i if i <= 3 else '' }}">
+                    {% if i == 1 %}
+                        <i class="fas fa-crown" style="color: #f39c12;"></i>
+                    {% elif i == 2 %}
+                        <i class="fas fa-medal" style="color: #95a5a6;"></i>
+                    {% elif i == 3 %}
+                        <i class="fas fa-award" style="color: #cd7f32;"></i>
+                    {% else %}
+                        {{ i }}
+                    {% end %}
+                </td>
+                <td>
+                    <div class="player-info">
+                        <div class="player-avatar">{{ player['username'][0].upper() }}</div>
+                        <a href="/profile/{{ player['id'] }}" class="player-name">
+                            {{ player['username'] }}
+                            {% if player['id'] == current_user['id'] if current_user else False %}
+                                <span style="color: #3498db;">(You)</span>
+                            {% end %}
+                        </a>
+                    </div>
+                </td>
+                <td class="elo-rating">{{ player['elo_rating'] }}</td>
+                <td>{{ player.get('games_played', 0) }}</td>
+                <td>
+                    <div class="win-rate">
+                        <span>{{ player.get('win_rate', 0) }}%</span>
+                        <div class="win-rate-bar">
+                            <div class="win-rate-fill" style="width: {{ player.get('win_rate', 0) }}%;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td style="color: #27ae60;">{{ player.get('wins', 0) }}</td>
+                <td style="color: #f39c12;">{{ player.get('draws', 0) }}</td>
+                <td>{{ player.get('last_active', 'Never') }}</td>
+            </tr>
+            {% end %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination">
+    <button id="prevPage" onclick="changePage(-1)">
+        <i class="fas fa-chevron-left"></i> Previous
+    </button>
+    
+    <button class="active">1</button>
+    <button>2</button>
+    <button>3</button>
+    <button>...</button>
+    <button>{{ total_pages }}</button>
+    
+    <button id="nextPage" onclick="changePage(1)">
+        Next <i class="fas fa-chevron-right"></i>
+    </button>
+</div>
+{% end %}
+
+{% block extra_js %}
+<script>
+// Leaderboard functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize filters
+    document.getElementById('timePeriod').addEventListener('change', updateLeaderboard);
+    document.getElementById('playerType').addEventListener('change', updateLeaderboard);
+    document.getElementById('itemsPerPage').addEventListener('change', updateLeaderboard);
+    
+    // Auto-refresh every 30 seconds
+    setInterval(function() {
+        updateLeaderboard();
+    }, 30000);
+});
+
+function updateLeaderboard() {
+    // This would typically fetch new data from the server
+    // For now, we'll just reload the page
+    window.location.reload();
+}
+
+function changePage(direction) {
+    const currentPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1');
+    const newPage = currentPage + direction;
+    
+    if (newPage >= 1) {
+        const url = new URL(window.location);
+        url.searchParams.set('page', newPage);
+        window.location.href = url.toString();
+    }
+}
+
+// Scroll to current user if present
+function scrollToCurrentUser() {
+    const currentUserRow = document.querySelector('.current-user-row');
+    if (currentUserRow) {
+        currentUserRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+// Call on load
+window.addEventListener('load', scrollToCurrentUser);
+</script>
+{% end %}

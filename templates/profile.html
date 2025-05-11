@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user['username'] }} - Profile{% end %}
+
+{% block extra_css %}
+<style>
+    .profile-header {
+        background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="100" fill="rgba(255,255,255,0.1)">♔</text></svg>');
+        background-size: 200px;
+        opacity: 0.1;
+    }
+
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: bold;
+        margin: 0 auto 1rem;
+        border: 4px solid rgba(255,255,255,0.3);
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-name {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-rating {
+        font-size: 1.5rem;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-align: center;
+        transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        color: #3498db;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-header h2 {
+        color: #2c3e50;
+    }
+
+    .game-history {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .history-table th {
+        background: #f8f9fa;
+        color: #495057;
+        font-weight: 600;
+        padding: 1rem;
+        text-align: left;
+    }
+
+    .history-table td {
+        padding: 1rem;
+        border-top: 1px solid #eee;
+    }
+
+    .history-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .result-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .result-win {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .result-loss {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .result-draw {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .player-link {
+        color: #3498db;
+        text-decoration: none;
+    }
+
+    .player-link:hover {
+        text-decoration: underline;
+    }
+
+    .rating-chart {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+    }
+
+    .empty-state .icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .achievements {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .achievement {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .achievement.locked {
+        opacity: 0.5;
+        filter: grayscale(1);
+    }
+
+    .achievement-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .achievement-title {
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+        .profile-stats {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+
+        .history-table {
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+    }
+</style>
+{% end %}
+
+{% block content %}
+<div class="profile-header">
+    <div class="profile-avatar">{{ user['username'][0].upper() }}</div>
+    <h1 class="profile-name">{{ user['username'] }}</h1>
+    <div class="profile-rating">{{ user['elo_rating'] }} ELO</div>
+</div>
+
+<div class="profile-stats">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-chess"></i>
+        </div>
+        <div class="stat-value">{{ total_games }}</div>
+        <div class="stat-label">Total Games</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-trophy"></i>
+        </div>
+        <div class="stat-value">{{ wins }}</div>
+        <div class="stat-label">Wins</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-handshake"></i>
+        </div>
+        <div class="stat-value">{{ draws }}</div>
+        <div class="stat-label">Draws</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-percentage"></i>
+        </div>
+        <div class="stat-value">{{ win_rate }}%</div>
+        <div class="stat-label">Win Rate</div>
+    </div>
+</div>
+
+<div class="section-header">
+    <h2>Game History</h2>
+    <span class="badge badge-info">Last 20 games</span>
+</div>
+
+{% if games_history %}
+<div class="game-history">
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th>Opponent</th>
+                <th>Your Color</th>
+                <th>Result</th>
+                <th>Your Rating</th>
+                <th>Rating Change</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for game in games_history %}
+            <tr>
+                <td>
+                    {% if game['white_player_id'] == user['id'] %}
+                        {% if game['black_username'] %}
+                            <a href="/profile/{{ game['black_player_id'] }}" class="player-link">{{ game['black_username'] }}</a>
+                        {% else %}
+                            <span>Chess AI</span>
+                        {% end %}
+                    {% else %}
+                        <a href="/profile/{{ game['white_player_id'] }}" class="player-link">{{ game['white_username'] }}</a>
+                    {% end %}
+                </td>
+                <td>
+                    {% if game['white_player_id'] == user['id'] %}
+                        <span style="color: #333;">♔ White</span>
+                    {% else %}
+                        <span style="color: #000;">♚ Black</span>
+                    {% end %}
+                </td>
+                <td>
+                    {% if game['winner_id'] == user['id'] %}
+                        <span class="result-badge result-win">Win</span>
+                    {% elif game['winner_id'] is None %}
+                        <span class="result-badge result-draw">Draw</span>
+                    {% else %}
+                        <span class="result-badge result-loss">Loss</span>
+                    {% end %}
+                </td>
+                <td>
+                    {% if game['white_player_id'] == user['id'] %}
+                        {{ game['white_elo_before'] }}
+                    {% else %}
+                        {{ game['black_elo_before'] }}
+                    {% end %}
+                </td>
+                <td>
+                    {% if game['white_player_id'] == user['id'] %}
+                        {% set rating_change = game['white_elo_after'] - game['white_elo_before'] %}
+                    {% else %}
+                        {% set rating_change = game['black_elo_after'] - game['black_elo_before'] %}
+                    {% end %}
+
+                    {% if rating_change > 0 %}
+                        <span style="color: #27ae60;">+{{ rating_change }}</span>
+                    {% elif rating_change < 0 %}
+                        <span style="color: #e74c3c;">{{ rating_change }}</span>
+                    {% else %}
+                        <span style="color: #95a5a6;">0</span>
+                    {% end %}
+                </td>
+                <td>{{ game['ended_at'] }}</td>
+            </tr>
+            {% end %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="icon">
+        <i class="fas fa-chess-board"></i>
+    </div>
+    <h3>No games played yet</h3>
+    <p>Start playing to build your game history!</p>
+    <a href="/" class="btn btn-primary">Find a Game</a>
+</div>
+{% end %}
+
+<div class="section-header">
+    <h2>Achievements</h2>
+</div>
+
+<div class="achievements">
+    <div class="achievement {% if total_games < 1 %}locked{% end %}">
+        <div class="achievement-icon">♟️</div>
+        <div class="achievement-title">First Move</div>
+    </div>
+
+    <div class="achievement {% if wins < 10 %}locked{% end %}">
+        <div class="achievement-icon">🏆</div>
+        <div class="achievement-title">10 Wins</div>
+    </div>
+
+    <div class="achievement {% if total_games < 50 %}locked{% end %}">
+        <div class="achievement-icon">⚔️</div>
+        <div class="achievement-title">Veteran</div>
+    </div>
+
+    <div class="achievement {% if user['elo_rating'] < 1600 %}locked{% end %}">
+        <div class="achievement-icon">📈</div>
+        <div class="achievement-title">Rising Star</div>
+    </div>
+
+    <div class="achievement {% if wins < 100 %}locked{% end %}">
+        <div class="achievement-icon">👑</div>
+        <div class="achievement-title">Grandmaster</div>
+    </div>
+
+    <div class="achievement {% if user['elo_rating'] < 2000 %}locked{% end %}">
+        <div class="achievement-icon">🌟</div>
+        <div class="achievement-title">Elite Player</div>
+    </div>
+</div>
+{% end %}
+
+{% block extra_js %}
+<script>
+// Calculate stats from games history
+document.addEventListener('DOMContentLoaded', function() {
+    // This would normally come from the server, but for demo purposes
+    // we can calculate some basic stats from the games_history
+    console.log('Profile loaded for user: {{ user["username"] }}');
+});
+</script>
+{% end %}
